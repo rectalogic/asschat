@@ -13,7 +13,7 @@ from openai import OpenAI
 log = logging.getLogger("ai")
 
 st.set_page_config(
-    page_title="The Pacific Institue AI",
+    page_title="OpenAI Assistant Chat",
     page_icon="images/assistant.webp",
     menu_items={
         # "Get Help": "https://www.example.com/",
@@ -54,7 +54,7 @@ def verify_signature(message: bytes, signature: bytes):
 
 @st.cache_resource
 def create_client() -> OpenAI:
-    return OpenAI(organization=load_env().get("organization_id"))
+    return OpenAI()
 
 
 # Update on every interaction

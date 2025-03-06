@@ -11,7 +11,7 @@ them to the AI chat application.
 # Configuration
 
 `OPENAI_API_KEY` environment variable must be set.
-If you use an OpenAI organization, set `organization_id` in [.streamlit/env.toml](.streamlit/env.toml).
+If you use an OpenAI organization, set `OPENAI_ORG_ID`.
 
 Create an OpenAI Assistant using the [assistants dashboard](https://platform.openai.com/assistants).
 Configure it with the model to use, any system messages and any files/vector stores it can access
