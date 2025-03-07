@@ -56,8 +56,10 @@ append the signed query string from above and reload.
 
 A production mode docker container can be built with:
 
-`docker buildx build -t ai --load .`
+`docker buildx build -t asschat --load .`
 
 and run with:
 
-`docker run --env OPENAI_API_KEY --init --rm -p 8501:8501 ai`
+`docker run --env OPENAI_API_KEY --init --rm -p 8501:8501 asschat`
+
+This will run in `prod` env, so configure `.streamlit/env.toml` appropriately.
