@@ -91,7 +91,7 @@ def chatbot():
         with st.chat_message("user"):
             st.markdown(prompt)
 
-        with st.chat_message("assistant", avatar="images/assistant.webp"):
+        with st.chat_message("assistant", avatar="images/assistant.png"):
             message = client.beta.threads.messages.create(
                 st.session_state.thread.id,
                 role="user",
