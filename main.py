@@ -8,7 +8,8 @@ import tomllib
 from cryptography.exceptions import InvalidSignature
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import ed25519
-from openai import OpenAI
+import openai
+from openai.types.beta.thread import ToolResources
 
 log = logging.getLogger("ai")
 
@@ -53,8 +54,8 @@ def verify_signature(message: bytes, signature: bytes):
 
 
 @st.cache_resource
-def create_client() -> OpenAI:
-    return OpenAI()
+def create_client() -> openai.OpenAI:
+    return openai.OpenAI()
 
 
 # Update on every interaction
@@ -78,9 +79,12 @@ def chatbot():
 
     client = create_client()
 
-    if "thread" not in st.session_state:
-        st.session_state.thread = client.beta.threads.create()
+    if "assistant" not in st.session_state:
+        st.session_state.assistant = client.beta.assistants.retrieve(load_env()["assistant_id"])
+    if "history" not in st.session_state:
         st.session_state.history = []
+    if "previous_response_id" not in st.session_state:
+        st.session_state.previous_response_id = None
 
     for message in st.session_state.history:
         with st.chat_message(message["role"]):
@@ -92,16 +96,22 @@ def chatbot():
             st.markdown(prompt)
 
         with st.chat_message("assistant", avatar="images/assistant.png"):
-            message = client.beta.threads.messages.create(
-                st.session_state.thread.id,
-                role="user",
-                content=prompt,
-            )
-            with client.beta.threads.runs.stream(
-                thread_id=st.session_state.thread.id,
-                assistant_id=load_env()["assistant_id"],
+            tool_resources: ToolResources | None = st.session_state.assistant.tool_resources
+            if tool_resources and tool_resources.file_search:
+                # XXX copy over more attributes
+                tools = [{"type": "file_search", "vector_store_ids": tool_resources.file_search.vector_store_ids}]
+            else:
+                tools = openai.NOT_GIVEN
+            with client.responses.stream(
+              model=st.session_state.assistant.model,
+              instructions=st.session_state.assistant.instructions,
+              input=prompt,
+              tools=tools,
+              previous_response_id=st.session_state.previous_response_id,
+              truncation="auto",
             ) as stream:
-                response = st.write_stream(stream.text_deltas)
+                response = st.write_stream(event.delta for event in stream if event.type == "response.output_text.delta")
+            st.session_state.previous_response_id = stream.get_final_response().id
 
         st.session_state.history.append({"role": "assistant", "content": response})
 
