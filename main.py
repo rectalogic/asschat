@@ -9,7 +9,9 @@ from cryptography.exceptions import InvalidSignature
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import ed25519
 import openai
-from openai.types.beta.thread import ToolResources
+from openai.types.beta import Assistant
+from openai.types.responses import ResponseTextDeltaEvent
+from openai.types.responses.file_search_tool_param import FileSearchToolParam
 
 log = logging.getLogger("ai")
 
@@ -57,6 +59,12 @@ def verify_signature(message: bytes, signature: bytes):
 def create_client() -> openai.OpenAI:
     return openai.OpenAI()
 
+@st.cache_resource
+def convert_tools(assistant: Assistant) -> list[FileSearchToolParam] | None:
+    if assistant.tool_resources and assistant.tool_resources.file_search and (vector_store_ids := assistant.tool_resources.file_search.vector_store_ids):
+        return [{"type": "file_search", "vector_store_ids": vector_store_ids}]
+    return None
+
 
 # Update on every interaction
 st.session_state.last_interaction = time.time()
@@ -96,21 +104,15 @@ def chatbot():
             st.markdown(prompt)
 
         with st.chat_message("assistant", avatar="images/assistant.png"):
-            tool_resources: ToolResources | None = st.session_state.assistant.tool_resources
-            if tool_resources and tool_resources.file_search:
-                # XXX copy over more attributes
-                tools = [{"type": "file_search", "vector_store_ids": tool_resources.file_search.vector_store_ids}]
-            else:
-                tools = openai.NOT_GIVEN
             with client.responses.stream(
               model=st.session_state.assistant.model,
               instructions=st.session_state.assistant.instructions,
               input=prompt,
-              tools=tools,
+              tools=convert_tools(st.session_state.assistant) or openai.NOT_GIVEN,
               previous_response_id=st.session_state.previous_response_id,
               truncation="auto",
             ) as stream:
-                response = st.write_stream(event.delta for event in stream if event.type == "response.output_text.delta")
+                response = st.write_stream(event.delta for event in stream if isinstance(event, ResponseTextDeltaEvent))
             st.session_state.previous_response_id = stream.get_final_response().id
 
         st.session_state.history.append({"role": "assistant", "content": response})
