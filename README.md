@@ -1,7 +1,7 @@
 # Authenticated AI Chat
 
-A [streamlit](https://streamlit.io/) application with an
-[OpenAI Assistant](https://platform.openai.com/docs/assistants/whats-new) streaming back end.
+A [streamlit](https://streamlit.io/) application with an [OpenAI Responses](https://platform.openai.com/docs/api-reference/responses) streaming back end,
+configured via an [OpenAI Assistant](https://platform.openai.com/docs/assistants/whats-new) back end.
 
 The application supports authenticating users via a signed url.
 So the actual user authentication would be handled by some existing webapp,
